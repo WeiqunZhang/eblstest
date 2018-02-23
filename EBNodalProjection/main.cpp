@@ -9,7 +9,9 @@ int main (int argc, char* argv[])
     {
         BL_PROFILE("main");
         MyTest mytest;
-        mytest.solve();
+        for (int i = 0; i < 1; ++i) {
+            mytest.solve();
+        }
     }
 
     amrex::Finalize();

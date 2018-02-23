@@ -32,7 +32,8 @@ private:
     bool use_hypre = false;
 
 //    std::string geom_type = "all_regular";
-    std::string geom_type = "ramp_normal_point";
+//    std::string geom_type = "ramp_normal_point";
+    std::string geom_type = "sphere";
 
     amrex::Vector<amrex::Geometry> geom;
     amrex::Vector<amrex::BoxArray> grids;

@@ -18,6 +18,7 @@
 #include <AMReX_PolynomialIF.H>
 #include <AMReX_AnisotropicDxPlaneIF.H>
 #include <AMReX_AnisotropicIF.H>
+#include <AMReX_EllipsoidIF.H>
 
 #include <AMReX_ParmParse.H>
 
@@ -104,6 +105,7 @@ MyTest::initializeEBIS ()
 
         const Box& finest_domain = geom.back().Domain();
         const Real* dx = geom.back().CellSize();
+        const Real fine_dx = dx[0];
         const RealVect dxVec {AMREX_D_DECL(dx[0], dx[1], dx[2])};
         RealVect origin = RealVect::Zero;
         
@@ -125,8 +127,8 @@ MyTest::initializeEBIS ()
             {
                 amrex::Print() << "ramp geometry using normal and point directly \n";
                 Vector<Real> pointvec {AMREX_D_DECL(0.,0.,0.)};
-                Vector<Real> normalvec{AMREX_D_DECL(-0.1, 1.0, 0.0)};
-                int inside = 1;
+                Vector<Real> normalvec{AMREX_D_DECL(-0.45, 1.0, 0.0)};
+                int inside = 0;
                 pp.queryarr("ramp_normal", normalvec, 0, SpaceDim);
                 pp.queryarr("ramp_point" ,  pointvec, 0, SpaceDim);
                 pp.query("ramp_inside", inside);
@@ -135,6 +137,33 @@ MyTest::initializeEBIS ()
                 RealVect point {AMREX_D_DECL( pointvec[0], pointvec[1], pointvec[2])};
 
                 impfunc.reset(static_cast<BaseIF*>(new PlaneIF(normal,point,normalInside)));
+            }
+            else if (geom_type == "sphere")
+            {
+                amrex::Print() << "sphere geometry\n";
+                Vector<Real> centervec {AMREX_D_DECL(0.7006, 0.5521, 0.0)};
+                Real radius = 0.125;
+                pp.query   ("sphere_radius", radius);
+                pp.queryarr("sphere_center", centervec, 0, SpaceDim);
+                RealVect center;
+                for(int idir = 0; idir < SpaceDim; idir++)
+                {
+                    center[idir] = centervec[idir];
+                }
+                bool insideRegular = false;
+                impfunc.reset(static_cast<BaseIF*>(new SphereIF(radius, center, insideRegular)));
+            }
+            else if (geom_type == "ellipsoid")
+            {
+                amrex::Print() << "ellipsoid geometry\n";
+                Vector<Real> rv{0.005, 400.0};
+                Vector<Real> cv{0.51171875, 0.5};
+                pp.queryarr("ellipsoid_radii", rv);
+                pp.queryarr("ellipsoid_center", cv);
+                RealVect radii(rv);
+                RealVect center(cv);
+                bool insideRegular = false;
+                impfunc.reset(static_cast<BaseIF*>(new EllipsoidIF(radii, center, insideRegular)));
             }
             else
             {
@@ -146,7 +175,7 @@ MyTest::initializeEBIS ()
             pp.query("eb_verbosity", eb_verbosity);
             GeometryShop gshop(*impfunc, eb_verbosity);
             AMReX_EBIS::instance()->define(finest_domain, origin, dxVec[0], gshop,
-                                           max_grid_size, max_level+100);
+                                           max_grid_size, max_level);
         }
 
         eb_initialized = true;
