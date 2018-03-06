@@ -35,27 +35,24 @@ MyTest::solve ()
 
     std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
     std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_hibc;
-    if (Geometry::isPeriodic(0)) {
-        mlmg_lobc[0] = LinOpBCType::Periodic;
-        mlmg_hibc[0] = LinOpBCType::Periodic;
-    } else {
-        mlmg_lobc[0] = LinOpBCType::Neumann;
-        mlmg_hibc[0] = LinOpBCType::Neumann;
+    for (int idim = 0; idim < 2; ++idim) {
+        if (Geometry::isPeriodic(idim)) {
+            mlmg_lobc[idim] = LinOpBCType::Periodic;
+            mlmg_hibc[idim] = LinOpBCType::Periodic;
+        } else {
+            mlmg_lobc[idim] = LinOpBCType::Neumann;
+            mlmg_hibc[idim] = LinOpBCType::Neumann;
+        }
     }
-    mlmg_lobc[1] = LinOpBCType::Neumann;
-//    mlmg_lobc[1] = LinOpBCType::Dirichlet;
-    mlmg_hibc[1] = LinOpBCType::Dirichlet;
-    static_assert(AMREX_SPACEDIM==2, "2d only");
+    mlmg_lobc[AMREX_SPACEDIM-1] = LinOpBCType::Neumann;
+//    mlmg_lobc[AMREX_SPACEDIM-1] = LinOpBCType::Dirichlet;
+    mlmg_hibc[AMREX_SPACEDIM-1] = LinOpBCType::Dirichlet;
 
     LPInfo info;
 //    info.setAgglomeration(false);
 
     MLNodeLaplacian mlndlap(geom, grids, dmap, info, amrex::GetVecOfConstPtrs(factory));
 
-    bool sp = false;
-    ParmParse pp;
-    pp.query("sp", sp);
-    mlndlap.setSimpleInterpolation(sp);
 //    mlndlap.setHarmonicAverage(true);
 
 //    mlndlap.setGaussSeidel(false);
@@ -92,6 +89,11 @@ MyTest::solve ()
 //    mlmg.setMaxIter(100);
 
 
+    {
+//        rhs[0].setVal(1.0);
+    }
+
+
     Real mlmg_err = mlmg.solve(amrex::GetVecOfPtrs(phi), amrex::GetVecOfConstPtrs(rhs),
                                1.e-11, 0.0);
 
@@ -107,6 +109,7 @@ MyTest::solve ()
     for (int ilev = 0; ilev <= max_level; ++ilev) {
         amrex::VisMF::Write(rhs[ilev], "rhs");
         amrex::Print() << "rhs.norm0() = " << rhs[ilev].norm0() << "\n";
+        amrex::Print() << "rhs.norm1()/npoints = " << rhs[ilev].norm1() / grids[0].d_numPts() << "\n";
     }
 
     amrex::WriteSingleLevelPlotfile("plot", vel[0], {"xvel","yvel"}, geom[0], 0.0, 0);

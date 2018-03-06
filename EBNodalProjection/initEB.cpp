@@ -156,8 +156,8 @@ MyTest::initializeEBIS ()
             else if (geom_type == "ellipsoid")
             {
                 amrex::Print() << "ellipsoid geometry\n";
-                Vector<Real> rv{0.005, 400.0};
-                Vector<Real> cv{0.51171875, 0.5};
+                Vector<Real> rv{0.005, 400.0, 400.0};
+                Vector<Real> cv{0.51171875, 0.5, 400.0};
                 pp.queryarr("ellipsoid_radii", rv);
                 pp.queryarr("ellipsoid_center", cv);
                 RealVect radii(rv);
