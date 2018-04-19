@@ -31,6 +31,8 @@ private:
     int max_fmg_iter = 0;
     bool use_hypre = false;
 
+    bool sigma = false;  // only for all_regular, we can set it to true
+
 //    std::string geom_type = "all_regular";
 //    std::string geom_type = "ramp_normal_point";
     std::string geom_type = "sphere";

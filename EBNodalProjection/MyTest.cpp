@@ -40,8 +40,10 @@ MyTest::solve ()
             mlmg_lobc[idim] = LinOpBCType::Periodic;
             mlmg_hibc[idim] = LinOpBCType::Periodic;
         } else {
-            mlmg_lobc[idim] = LinOpBCType::Neumann;
-            mlmg_hibc[idim] = LinOpBCType::Neumann;
+//            mlmg_lobc[idim] = LinOpBCType::Neumann;
+//            mlmg_hibc[idim] = LinOpBCType::Neumann;
+            mlmg_lobc[idim] = LinOpBCType::Dirichlet;
+            mlmg_hibc[idim] = LinOpBCType::Dirichlet;
         }
     }
     mlmg_lobc[AMREX_SPACEDIM-1] = LinOpBCType::Neumann;
@@ -53,9 +55,13 @@ MyTest::solve ()
 
     MLNodeLaplacian mlndlap(geom, grids, dmap, info, amrex::GetVecOfConstPtrs(factory));
 
-//    mlndlap.setHarmonicAverage(true);
+    mlndlap.setHarmonicAverage(true);
 
-//    mlndlap.setGaussSeidel(false);
+    mlndlap.setGaussSeidel(false);
+
+    if (sigma) {
+        mlndlap.setCoarseningStrategy(MLNodeLaplacian::CoarseningStrategy::Sigma);
+    }
 
     mlndlap.setDomainBC(mlmg_lobc, mlmg_hibc);
 
@@ -112,7 +118,7 @@ MyTest::solve ()
         amrex::Print() << "rhs.norm1()/npoints = " << rhs[ilev].norm1() / grids[0].d_numPts() << "\n";
     }
 
-    amrex::WriteSingleLevelPlotfile("plot", vel[0], {"xvel","yvel"}, geom[0], 0.0, 0);
+    amrex::WriteSingleLevelPlotfile("plot", vel[0], {AMREX_D_DECL("xvel","yvel","zvel")}, geom[0], 0.0, 0);
 }
 
 void
@@ -130,6 +136,8 @@ MyTest::readParameters ()
 #ifdef AMREX_USE_HYPRE
     pp.query("use_hypre", use_hypre);
 #endif
+
+    pp.query("sigma", sigma);
 
     pp.query("geom_type", geom_type);
 }
