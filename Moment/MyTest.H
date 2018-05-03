@@ -30,6 +30,7 @@ private:
     std::unique_ptr<amrex::EBFArrayBoxFactory> factory;
 
     amrex::Vector<std::string> moment_names;
+    amrex::Vector<amrex::Real> moment_scale_factors;
     amrex::MultiFab moments;
 };
 

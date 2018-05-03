@@ -175,6 +175,7 @@ MyTest::initializeEBIS ()
         
             bool eb_verbosity = true;
             pp.query("eb_verbosity", eb_verbosity);
+
             WrappedGShop gshop(*impfunc, eb_verbosity);
             AMReX_EBIS::instance()->define(finest_domain, origin, dxVec[0], gshop,
                                            max_grid_size, max_level);
