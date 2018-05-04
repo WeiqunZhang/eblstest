@@ -6,19 +6,9 @@
 #include <AMReX_VisMF.H>
 #include <AMReX_EBFArrayBox.H>
 #include <cmath>
-#include <AMReX_BLFort.H>
+#include "mytest_f.H"
 
 using namespace amrex;
-
-#if (BL_SPACEDIM == 2)
-extern "C" void set_intg_2d (const int* lo, const int* hi,
-                             Real* Sx, Real* Sx2, Real* Sy, Real* Sy2,
-                             const void* flag, const int* flo, const int* fhi,
-                             const Real* vfrc, const int* vlo, const int* vhi,
-                             const Real* apx, const int* axlo, const int* axhi,
-                             const Real* apy, const int* aylo, const int* ayhi,
-                             const Real* bcent, const int* blo, const int* bhi);
-#endif
 
 MyTest::MyTest ()
 {
@@ -29,13 +19,14 @@ MyTest::MyTest ()
     initializeEBIS();
 
     EBTower::Build();
-//    AMReX_EBIS::reset();
     
     initData();
 }
 
 MyTest::~MyTest ()
-{}
+{
+    AMReX_EBIS::reset();
+}
 
 void
 MyTest::readParameters ()
@@ -156,5 +147,5 @@ MyTest::test ()
 
     VisMF::Write(my_moments, "my_moments");
     MultiFab::Subtract(my_moments, moments, 0, 0, moments.nComp(), 0);
-    VisMF::Write(my_moments, "diff");    
+    VisMF::Write(my_moments, "diff");
 }

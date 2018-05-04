@@ -30,7 +30,7 @@ contains
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
 
-          if (is_single_valued_cell(flag(i,j))) then
+          if (is_single_valued_cell(flag(i,j)) .and. vol(i,j).le.almostone) then
 
              axm = ax(i,j)
              axp = ax(i+1,j)
@@ -39,6 +39,7 @@ contains
 
              apnorm = sqrt((axm-axp)**2 + (aym-ayp)**2)
              if (apnorm .eq. 0.d0) then
+                print *, "xxxxx", i, j, axm, axp, aym, ayp, vol(i,j), bcen(i,j,:)
                 call amrex_abort("amrex_mlndlap_set_connection: we are in trouble")
              end if
 
