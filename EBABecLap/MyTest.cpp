@@ -6,6 +6,8 @@
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_EB2.H>
 
+#include <cmath>
+
 using namespace amrex;
 
 MyTest::MyTest ()
@@ -22,10 +24,6 @@ MyTest::MyTest ()
 void
 MyTest::solve ()
 {
-#if 0
-    static int count = 0;
-    ++count;
-
     std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
     std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_hibc;
     for (int idim = 0; idim < 2; ++idim) {
@@ -33,79 +31,39 @@ MyTest::solve ()
             mlmg_lobc[idim] = LinOpBCType::Periodic;
             mlmg_hibc[idim] = LinOpBCType::Periodic;
         } else {
-//            mlmg_lobc[idim] = LinOpBCType::Neumann;
-//            mlmg_hibc[idim] = LinOpBCType::Neumann;
             mlmg_lobc[idim] = LinOpBCType::Dirichlet;
             mlmg_hibc[idim] = LinOpBCType::Dirichlet;
         }
     }
-    mlmg_lobc[AMREX_SPACEDIM-1] = LinOpBCType::Neumann;
-//    mlmg_lobc[AMREX_SPACEDIM-1] = LinOpBCType::Dirichlet;
-    mlmg_hibc[AMREX_SPACEDIM-1] = LinOpBCType::Dirichlet;
 
     LPInfo info;
-//    info.setAgglomeration(false);
+    info.setMaxCoarseningLevel(0);
 
-    MLNodeLaplacian mlndlap(geom, grids, dmap, info, amrex::GetVecOfConstPtrs(factory));
+    MLEBABecLap mleb (geom, grids, dmap, info, amrex::GetVecOfConstPtrs(factory));
 
-    mlndlap.setHarmonicAverage(true);
-
-    mlndlap.setGaussSeidel(false);
-
-    if (sigma) {
-        mlndlap.setCoarseningStrategy(MLNodeLaplacian::CoarseningStrategy::Sigma);
-    }
-
-    mlndlap.setDomainBC(mlmg_lobc, mlmg_hibc);
+    mleb.setDomainBC(mlmg_lobc, mlmg_hibc);
 
     for (int ilev = 0; ilev <= max_level; ++ilev) {
-        mlndlap.setSigma(ilev, sig[ilev]);
+        mleb.setLevelBC(ilev, &phi[ilev]);
     }
+
+    mleb.setScalars(0.0, 1.0);
 
     for (int ilev = 0; ilev <= max_level; ++ilev) {
-        amrex::VisMF::Write(vel[ilev], "velorig");
-        amrex::VisMF::Write(factory[ilev]->getVolFrac(), "vfrc");
+        mleb.setACoeffs(ilev, acoef[ilev]);
+        mleb.setBCoeffs(ilev, amrex::GetArrOfConstPtrs(bcoef[ilev]));
     }
 
-    mlndlap.compRHS(amrex::GetVecOfPtrs(rhs), amrex::GetVecOfPtrs(vel), {}, {});
-
-    for (int ilev = 0; ilev <= max_level; ++ilev) {
-        amrex::VisMF::Write(rhs[ilev], "rhsorig");
-    }
-
-    MLMG mlmg(mlndlap);
-    mlmg.setVerbose(verbose);
-    mlmg.setBottomVerbose(bottom_verbose);
+    MLMG mlmg(mleb);
     mlmg.setMaxIter(max_iter);
     mlmg.setMaxFmgIter(max_fmg_iter);
+    mlmg.setVerbose(verbose);
+    mlmg.setBottomVerbose(bottom_verbose);
+    if (use_hypre) mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
 
-    // xxxxx
-//    mlmg.setFinalSmooth(16);
-//    mlmg.setBottomSmooth(8);
-
-    // xxxxx
-//    mlmg.setBottomSolver(MLMG::BottomSolver::smoother);
-//    mlmg.setMaxIter(100);
-
-
-    {
-//        rhs[0].setVal(1.0);
-    }
-
-
-    Real mlmg_err = mlmg.solve(amrex::GetVecOfPtrs(phi), amrex::GetVecOfConstPtrs(rhs),
-                               1.e-11, 0.0);
-
-    mlndlap.updateVelocity(amrex::GetVecOfPtrs(vel), amrex::GetVecOfConstPtrs(phi));
-
-    for (int ilev = 0; ilev <= max_level; ++ilev) {
-        amrex::VisMF::Write(phi[ilev], "phi");
-        amrex::VisMF::Write(vel[ilev], "vel");
-    }
-
-    mlndlap.compRHS(amrex::GetVecOfPtrs(rhs), amrex::GetVecOfPtrs(vel), {}, {});
-
-#endif
+    const Real tol_rel = 1.e-10;
+    const Real tol_abs = 0.0;
+    mlmg.solve(amrex::GetVecOfPtrs(phi), amrex::GetVecOfConstPtrs(rhs), tol_rel, tol_abs);
 
     for (int ilev = 0; ilev <= max_level; ++ilev) {
         amrex::VisMF::Write(phi[0], "phi-"+std::to_string(ilev));
@@ -192,6 +150,23 @@ MyTest::initData ()
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             bcoef[ilev][idim].setVal(1.0);
         }
+
+        const Real* dx = geom[ilev].CellSize();
+
+        // Initialize Dirichlet boundary
+        for (MFIter mfi(phi[ilev]); mfi.isValid(); ++mfi)
+        {
+            FArrayBox& fab = phi[ilev][mfi];
+            const Box& bx = fab.box();
+            fab.ForEachIV(bx, 0, 1, [=] (Real& p, const IntVect& iv) {
+                    Real rx = (iv[0]+0.5)*dx[0] - 0.5;
+                    Real ry = (iv[1]+0.5)*dx[1] - 0.5;
+                    Real r2 = rx*rx+ry*ry;
+                    p = r2;
+                });
+        }
+
+        phi[ilev].setVal(0.0, 0, 1, 0);
     }
 }
 
