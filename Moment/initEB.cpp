@@ -167,6 +167,23 @@ MyTest::initializeEBIS ()
                 bool insideRegular = false;
                 impfunc.reset(static_cast<BaseIF*>(new EllipsoidIF(radii, center, insideRegular)));
             }
+            else if (geom_type == "box")
+            {
+                int inside = 0;
+                pp.query("box_inside", inside);
+                Vector<BaseIF*> planes;
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    RealVect normalLo = BASISREALV(idim);
+                    RealVect pointLo = (0.25+0.1*fine_dx) * BASISREALV(idim);
+                    planes.push_back(new PlaneIF(normalLo, pointLo, !inside));
+
+                    RealVect normalHi = -BASISREALV(idim);
+                    RealVect pointHi = (0.75-0.1*fine_dx) * BASISREALV(idim);
+                    planes.push_back(new PlaneIF(normalHi, pointHi, !inside));
+                }
+
+                impfunc.reset(new IntersectionIF(planes));
+            }
             else
             {
                 amrex::Print() << " bogus geom_type input = " << geom_type << "\n";

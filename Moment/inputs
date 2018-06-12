@@ -11,3 +11,5 @@ geom_type = ramp_normal_point
 ramp_normal = 0.0  -1.0  0.0
 #ramp_point  = 0.5   0.50078125   0.0
 ramp_point  = 0.5   0.50703125   0.0
+
+geom_type = box

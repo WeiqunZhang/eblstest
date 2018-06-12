@@ -15,7 +15,7 @@ public:
 
 private:
 
-    void initializeEBIS ();
+    void initializeEB ();
     void readParameters ();
     void initGrids ();
     void initData ();
@@ -31,10 +31,6 @@ private:
     int max_iter = 100;
     int max_fmg_iter = 0;
     bool use_hypre = false;
-
-//    std::string geom_type = "all_regular";
-//    std::string geom_type = "ramp_normal_point";
-    std::string geom_type = "sphere";
 
     amrex::Vector<amrex::Geometry> geom;
     amrex::Vector<amrex::BoxArray> grids;

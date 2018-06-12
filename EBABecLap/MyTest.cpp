@@ -4,8 +4,7 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_PlotFileUtil.H>
-#include <AMReX_EBIndexSpace.H>
-#include <AMReX_EBTower.H>
+#include <AMReX_EB2.H>
 
 using namespace amrex;
 
@@ -15,10 +14,7 @@ MyTest::MyTest ()
 
     initGrids();
 
-    initializeEBIS();
-
-    EBTower::Build();
-    AMReX_EBIS::reset();
+    initializeEB();
 
     initData();
 }
@@ -132,8 +128,6 @@ MyTest::readParameters ()
 #ifdef AMREX_USE_HYPRE
     pp.query("use_hypre", use_hypre);
 #endif
-
-    pp.query("geom_type", geom_type);
 }
 
 void
@@ -179,7 +173,9 @@ MyTest::initData ()
     for (int ilev = 0; ilev < nlevels; ++ilev)
     {
         dmap[ilev].define(grids[ilev]);
-        factory[ilev].reset(new EBFArrayBoxFactory(geom[ilev], grids[ilev], dmap[ilev],
+        const EB2::IndexSpace& eb_is = EB2::IndexSpace::top();
+        const EB2::Level& eb_level = eb_is.getLevel(geom[ilev]);
+        factory[ilev].reset(new EBFArrayBoxFactory(eb_level, geom[ilev], grids[ilev], dmap[ilev],
                                                    {2,2,2}, EBSupport::full));
 
         phi[ilev].define(grids[ilev], dmap[ilev], 1, 1, MFInfo(), *factory[ilev]);

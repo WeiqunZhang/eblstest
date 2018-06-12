@@ -1,4 +1,6 @@
-DEBUG = TRUE
+DEBUG = FALSE
+TEST = TRUE
+USE_ASSERTION = TRUE
 
 USE_EB = TRUE
 
@@ -18,7 +20,7 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 include ./Make.package
 
 Pdirs := Base Boundary AmrCore
-Pdirs += GeometryShop EB
+Pdirs += EB EB2 GeometryShop
 Pdirs += LinearSolvers/C_CellMG LinearSolvers/MLMG
 
 ifeq ($(USE_HYPRE),TRUE)
