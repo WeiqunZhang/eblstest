@@ -34,6 +34,6 @@ MyTest::initializeEB ()
     }
     else
     {
-        EB2::Build(geom.back(), max_level);
+        EB2::Build(geom.back(), max_level, max_level);
     }
 }
