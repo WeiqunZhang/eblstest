@@ -30,6 +30,7 @@ private:
     int bottom_verbose = 2;
     int max_iter = 100;
     int max_fmg_iter = 0;
+    int max_bottom_iter = 1000;
     bool use_hypre = false;
 
     amrex::Vector<amrex::Geometry> geom;

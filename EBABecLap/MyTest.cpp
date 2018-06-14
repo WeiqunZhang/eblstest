@@ -57,11 +57,12 @@ MyTest::solve ()
     MLMG mlmg(mleb);
     mlmg.setMaxIter(max_iter);
     mlmg.setMaxFmgIter(max_fmg_iter);
+    mlmg.setBottomMaxIter(max_bottom_iter);
     mlmg.setVerbose(verbose);
     mlmg.setBottomVerbose(bottom_verbose);
     if (use_hypre) mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
 
-    const Real tol_rel = 1.e-10;
+    const Real tol_rel = 1.e-12;
     const Real tol_abs = 0.0;
     mlmg.solve(amrex::GetVecOfPtrs(phi), amrex::GetVecOfConstPtrs(rhs), tol_rel, tol_abs);
 
@@ -83,6 +84,7 @@ MyTest::readParameters ()
     pp.query("bottom_verbose", bottom_verbose);
     pp.query("max_iter", max_iter);
     pp.query("max_fmg_iter", max_fmg_iter);
+    pp.query("max_bottom_iter", max_bottom_iter);
 #ifdef AMREX_USE_HYPRE
     pp.query("use_hypre", use_hypre);
 #endif
@@ -159,10 +161,9 @@ MyTest::initData ()
             FArrayBox& fab = phi[ilev][mfi];
             const Box& bx = fab.box();
             fab.ForEachIV(bx, 0, 1, [=] (Real& p, const IntVect& iv) {
-                    Real rx = (iv[0]+0.5)*dx[0] - 0.5;
-                    Real ry = (iv[1]+0.5)*dx[1] - 0.5;
-                    Real r2 = rx*rx+ry*ry;
-                    p = r2;
+                    Real rx = (iv[0]+0.5)*dx[0];
+                    Real ry = (iv[1]+0.5)*dx[1];
+                    p = std::sqrt(0.5)*(rx + ry);
                 });
         }
 
