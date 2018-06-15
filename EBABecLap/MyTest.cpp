@@ -24,6 +24,10 @@ MyTest::MyTest ()
 void
 MyTest::solve ()
 {
+    for (int ilev = 0; ilev <= max_level; ++ilev) {
+        amrex::VisMF::Write(factory[ilev]->getVolFrac(), "vfrc-"+std::to_string(ilev));
+    }
+
     std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
     std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_hibc;
     for (int idim = 0; idim < 2; ++idim) {
@@ -68,7 +72,6 @@ MyTest::solve ()
 
     for (int ilev = 0; ilev <= max_level; ++ilev) {
         amrex::VisMF::Write(phi[0], "phi-"+std::to_string(ilev));
-        amrex::VisMF::Write(factory[ilev]->getVolFrac(), "vfrc-"+std::to_string(ilev));
     }
 }
 

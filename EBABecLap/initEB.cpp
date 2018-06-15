@@ -18,6 +18,7 @@
 #include <algorithm>
 
 #include "MyTest.H"
+#include "MyEB.H"
 
 using namespace amrex;
 
@@ -47,6 +48,12 @@ MyTest::initializeEB ()
         EB2::BoxIF box({AMREX_D_DECL(0.25,0.75,0.5)}, {AMREX_D_DECL(0.75,0.8,0.75)}, false);
         auto twospheres = EB2::makeUnion(sphere1, sphere2, box);
         auto gshop = EB2::makeShop(twospheres);
+        EB2::Build(gshop, geom.back(), max_level+max_coarsening_level, 30);
+    }
+    else if (geom_type == "flower")
+    {
+        FlowerIF flower(0.2, 0.1, 6, {AMREX_D_DECL(0.5,0.5,0.5)}, false);
+        auto gshop = EB2::makeShop(flower);
         EB2::Build(gshop, geom.back(), max_level+max_coarsening_level, 30);
     }
     else
