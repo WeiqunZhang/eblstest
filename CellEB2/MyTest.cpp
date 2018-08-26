@@ -23,6 +23,7 @@ extern "C" {
                            amrex_real* phib, const int* blo, const int* bhi,
                            amrex_real* rhs, const int* rlo, const int* rhi,
                            const void* flag, const int* flo, const int* fhi,
+                           const amrex_real* cent, const int* tlo, const int* thi,
                            const amrex_real* bcent, const int* clo, const int* chi,
                            const amrex_real* dx);
 }
@@ -43,8 +44,6 @@ void
 MyTest::solve ()
 {
     for (int ilev = 0; ilev <= max_level; ++ilev) {
-        amrex::VisMF::Write(factory[ilev]->getVolFrac(), "vfrc-"+std::to_string(ilev));
-
         const MultiFab& vfrc = factory[ilev]->getVolFrac();
         MultiFab v(vfrc.boxArray(), vfrc.DistributionMap(), 1, 0,
                    MFInfo(), *factory[ilev]);
@@ -116,7 +115,36 @@ MyTest::solve ()
         Real norminf = mf.norm0();
         Real norm1 = mf.norm1()*(1.0/n_cell)*(1.0/n_cell);
         amrex::Print() << "weighted max and 1 norms " << norminf << ", " << norm1 << std::endl;        
+    }    
+}
+
+void
+MyTest::writePlotfile ()
+{
+    Vector<MultiFab> plotmf(max_level+1);
+    for (int ilev = 0; ilev <= max_level; ++ilev) {
+        const MultiFab& vfrc = factory[ilev]->getVolFrac();
+        plotmf[ilev].define(grids[ilev],dmap[ilev],5,0);
+
+        MultiFab::Copy(plotmf[ilev], phi[ilev], 0, 0, 1, 0);
+
+        MultiFab::Copy(plotmf[ilev], phiexact[ilev], 0, 1, 1, 0);
+
+        MultiFab::Copy(plotmf[ilev], phi[ilev], 0, 2, 1, 0);
+        MultiFab::Subtract(plotmf[ilev], phiexact[ilev], 0, 2, 1, 0);
+
+        MultiFab::Copy(plotmf[ilev], phi[ilev], 0, 3, 1, 0);
+        MultiFab::Subtract(plotmf[ilev], phiexact[ilev], 0, 3, 1, 0);
+        MultiFab::Multiply(plotmf[ilev], vfrc, 0, 3, 1, 0);
+
+        MultiFab::Copy(plotmf[ilev], vfrc, 0, 4, 1, 0);    
     }
+    WriteMultiLevelPlotfile(plot_file_name, max_level+1,
+                            amrex::GetVecOfConstPtrs(plotmf),
+                            {"phi","exact","error","error*vfrac","vfrac"},
+                            geom, 0.0, Vector<int>(max_level+1,0),
+                            Vector<IntVect>(max_level,IntVect{2}));
+                            
 }
 
 void
@@ -128,6 +156,8 @@ MyTest::readParameters ()
     pp.query("max_grid_size", max_grid_size);
     pp.query("is_periodic", is_periodic);
     pp.query("eb_is_dirichlet", eb_is_dirichlet);
+
+    pp.query("plot_file", plot_file_name);
 
     scalars.resize(2);
     if (is_periodic) {
@@ -228,6 +258,7 @@ MyTest::initData ()
 
         const FabArray<EBCellFlagFab>& flags = factory[ilev]->getMultiEBCellFlagFab();
         const MultiCutFab& bcent = factory[ilev]->getBndryCent();
+        const MultiCutFab& cent = factory[ilev]->getCentroid();
 
         for (MFIter mfi(phiexact[ilev],true); mfi.isValid(); ++mfi)
         {
@@ -248,6 +279,7 @@ MyTest::initData ()
                                   BL_TO_FORTRAN_ANYD(phieb[ilev][mfi]),
                                   BL_TO_FORTRAN_ANYD(rhs[ilev][mfi]),
                                   BL_TO_FORTRAN_ANYD(flags[mfi]),
+                                  BL_TO_FORTRAN_ANYD(cent[mfi]),
                                   BL_TO_FORTRAN_ANYD(bcent[mfi]),
                                   dx);
             }

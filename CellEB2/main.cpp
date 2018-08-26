@@ -12,6 +12,7 @@ int main (int argc, char* argv[])
         for (int i = 0; i < 1; ++i) {
             mytest.solve();
         }
+        mytest.writePlotfile();
     }
 
     amrex::Finalize();

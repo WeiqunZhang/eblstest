@@ -4,6 +4,7 @@
 #include <AMReX_EBFabFactory.H>
 #include <AMReX_MLMG.H>
 #include <AMReX_Array.H>
+#include <string>
 
 class MyTest
 {
@@ -12,6 +13,8 @@ public:
     MyTest ();
 
     void solve ();
+
+    void writePlotfile ();
 
 private:
 
@@ -26,7 +29,9 @@ private:
     int max_grid_size = 64;
     int is_periodic = 0;
     int eb_is_dirichlet = 0;
-    
+
+    std::string plot_file_name{"plt"};
+ 
     amrex::Vector<amrex::Real> scalars;
 
     // For MLMG solver
