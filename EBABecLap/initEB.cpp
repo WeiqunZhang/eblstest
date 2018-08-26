@@ -52,7 +52,9 @@ MyTest::initializeEB ()
     }
     else if (geom_type == "flower")
     {
-        FlowerIF flower(0.2, 0.1, 6, {AMREX_D_DECL(0.5,0.5,0.5)}, false);
+        int npetals = 6;
+        pp.query("flower_npetals", npetals);
+        FlowerIF flower(0.2, 0.1, npetals, {AMREX_D_DECL(0.5,0.5,0.5)}, false);
         auto gshop = EB2::makeShop(flower);
         EB2::Build(gshop, geom.back(), max_level+max_coarsening_level, 30);
     }
