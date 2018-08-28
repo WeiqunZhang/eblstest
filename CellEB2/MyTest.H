@@ -30,7 +30,9 @@ private:
     int is_periodic = 0;
     int eb_is_dirichlet = 0;
 
-    std::string plot_file_name{"plt"};
+    int prob_type = 2;
+
+    std::string plot_file_name{"plot"};
  
     amrex::Vector<amrex::Real> scalars;
 

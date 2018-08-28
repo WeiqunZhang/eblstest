@@ -1,19 +1,22 @@
 
 module mytest
   use amrex_fort_module, only : amrex_real
-  use amrex_constants_module, only : half, three, zero, seven
+  use amrex_constants_module, only : half, three, zero, seven, m_pi
   use amrex_ebcellflag_module, only : is_regular_cell, is_covered_cell, is_single_valued_cell
   implicit none
 
 contains
 
 #if (AMREX_SPACEDIM == 2)
-  subroutine mytest_set_phi_reg(lo, hi, phie, elo, ehi, rhs, rlo, rhi, dx) &
+  subroutine mytest_set_phi_reg(lo, hi, phie, elo, ehi, rhs, rlo, rhi, &
+       bx, xlo, xhi, by, ylo, yhi, dx, prob_type) &
        bind(c,name='mytest_set_phi_reg')
-    integer, dimension(2), intent(in) :: lo, hi, elo, ehi, rlo, rhi
+    integer, dimension(2), intent(in) :: lo, hi, elo, ehi, rlo, rhi, xlo, xhi
+    integer, intent(in) :: prob_type
     real(amrex_real), intent(in) :: dx(2)
     real(amrex_real), intent(inout) ::  phie(elo(1):ehi(1),elo(2):ehi(2))
     real(amrex_real), intent(inout) ::  rhs (rlo(1):rhi(1),rlo(2):rhi(2))
+    real(amrex_real), intent(inout) ::  bx  (xlo(1):xhi(1),xlo(2):xhi(2))
 
     integer :: i,j
     real(amrex_real) :: x, y, r2, theta
@@ -22,7 +25,7 @@ contains
        do i = lo(1), hi(1)
           x = (i+half)*dx(1) - half
           y = (j+half)*dx(2) - half
-          theta = atan2(x,y)
+          theta = atan2(x,y) + half*m_pi
           r2 = x**2 + y**2
           phie(i,j) = r2**2 * cos(three*theta)
           rhs(i,j) = -seven * r2 * cos(three*theta)
@@ -54,20 +57,20 @@ contains
           else
              x = (i+half)*dx(1) - half
              y = (j+half)*dx(2) - half
-             theta = atan2(x,y)
+             theta = atan2(x,y) + half*m_pi
              r2 = x**2 + y**2
              phie(i,j) = r2**2 * cos(three*theta)
 
              x = (i+half+cent(i,j,1))*dx(1) - half
              y = (j+half+cent(i,j,2))*dx(2) - half
-             theta = atan2(x,y)
+             theta = atan2(x,y) + half*m_pi
              r2 = x**2 + y**2
              rhs(i,j) = -seven * r2 * cos(three*theta)
 
              if (is_single_valued_cell(flag(i,j))) then
                 x = (i+half+bcent(i,j,1))*dx(1) - half
                 y = (j+half+bcent(i,j,2))*dx(2) - half
-                theta = atan2(x,y)
+                theta = atan2(x,y) + half*m_pi
                 r2 = x**2 + y**2
                 phib(i,j) = r2**2 * cos(three*theta)
              else
