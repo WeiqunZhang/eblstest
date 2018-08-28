@@ -1,22 +1,24 @@
 
 module mytest
   use amrex_fort_module, only : amrex_real
-  use amrex_constants_module, only : half, three, zero, seven, m_pi
+  use amrex_constants_module, only : half, zero, one, three, seven, fifteen, m_pi
   use amrex_ebcellflag_module, only : is_regular_cell, is_covered_cell, is_single_valued_cell
   implicit none
 
 contains
 
 #if (AMREX_SPACEDIM == 2)
-  subroutine mytest_set_phi_reg(lo, hi, phie, elo, ehi, rhs, rlo, rhi, &
-       bx, xlo, xhi, by, ylo, yhi, dx, prob_type) &
+  subroutine mytest_set_phi_reg(lo, hi, xlo, xhi, ylo, yhi, phie, elo, ehi, &
+       rhs, rlo, rhi, bx, bxlo, bxhi, by, bylo, byhi, dx, prob_type) &
        bind(c,name='mytest_set_phi_reg')
-    integer, dimension(2), intent(in) :: lo, hi, elo, ehi, rlo, rhi, xlo, xhi
+    integer, dimension(2), intent(in) :: lo, hi, elo, ehi, rlo, rhi, xlo, xhi, ylo, yhi, &
+         bxlo, bxhi, bylo, byhi
     integer, intent(in) :: prob_type
     real(amrex_real), intent(in) :: dx(2)
-    real(amrex_real), intent(inout) ::  phie(elo(1):ehi(1),elo(2):ehi(2))
-    real(amrex_real), intent(inout) ::  rhs (rlo(1):rhi(1),rlo(2):rhi(2))
-    real(amrex_real), intent(inout) ::  bx  (xlo(1):xhi(1),xlo(2):xhi(2))
+    real(amrex_real), intent(inout) ::  phie( elo(1): ehi(1), elo(2): ehi(2))
+    real(amrex_real), intent(inout) ::  rhs ( rlo(1): rhi(1), rlo(2): rhi(2))
+    real(amrex_real), intent(inout) ::  bx  (bxlo(1):bxhi(1),bxlo(2):bxhi(2))
+    real(amrex_real), intent(inout) ::  by  (bylo(1):byhi(1),bylo(2):byhi(2))
 
     integer :: i,j
     real(amrex_real) :: x, y, r2, theta
@@ -28,20 +30,52 @@ contains
           theta = atan2(x,y) + half*m_pi
           r2 = x**2 + y**2
           phie(i,j) = r2**2 * cos(three*theta)
-          rhs(i,j) = -seven * r2 * cos(three*theta)
+          if (prob_type .eq. 1) then
+             rhs(i,j) = -seven * r2 * cos(three*theta)
+          else
+             rhs(i,j) = -(seven * r2 - fifteen * r2**2) * cos(three*theta)
+          end if
        end do
     end do
+
+    if (prob_type .eq. 2) then
+       do    j = xlo(2), xhi(2)
+          do i = xlo(1), xhi(1)
+             x = (i     )*dx(1) - half
+             y = (j+half)*dx(2) - half
+             theta = atan2(x,y) + half*m_pi
+             r2 = x**2 + y**2
+             bx(i,j) = one - r2
+          end do
+       end do
+
+       do    j = ylo(2), yhi(2)
+          do i = ylo(1), yhi(1)
+             x = (i+half)*dx(1) - half
+             y = (j     )*dx(2) - half
+             theta = atan2(x,y) + half*m_pi
+             r2 = x**2 + y**2
+             by(i,j) = one - r2
+          end do
+       end do
+    end if
   end subroutine mytest_set_phi_reg
 
-  subroutine mytest_set_phi_eb(lo, hi, phie, elo, ehi, phib, blo, bhi, &
-       rhs, rlo, rhi, flag, flo, fhi, cent, tlo, thi, bcent, clo, chi, dx) &
+  subroutine mytest_set_phi_eb(lo, hi, xlo, xhi, ylo, yhi, phie, elo, ehi, &
+       phib, blo, bhi, rhs, rlo, rhi, &
+       bx, bxlo, bxhi, by, bylo, byhi, bb, bblo, bbhi, &
+       flag, flo, fhi, cent, tlo, thi, bcent, clo, chi, dx, prob_type) &
        bind(c,name='mytest_set_phi_eb')
-    integer, dimension(2), intent(in) :: lo, hi, elo, ehi, blo, bhi, &
-         rlo, rhi, flo, fhi, tlo, thi, clo, chi
+    integer, dimension(2), intent(in) :: lo, hi, xlo, xhi, ylo, yhi, elo, ehi, blo, bhi, &
+         rlo, rhi, bxlo, bxhi, bylo, byhi, bblo, bbhi, flo, fhi, tlo, thi, clo, chi
+    integer, intent(in) :: prob_type
     real(amrex_real), intent(in) :: dx(2)
     real(amrex_real), intent(inout) ::  phie(elo(1):ehi(1),elo(2):ehi(2))
     real(amrex_real), intent(inout) ::  phib(blo(1):bhi(1),blo(2):bhi(2))
     real(amrex_real), intent(inout) ::  rhs (rlo(1):rhi(1),rlo(2):rhi(2))
+    real(amrex_real), intent(inout) ::  bx  (bxlo(1):bxhi(1),bxlo(2):bxhi(2))
+    real(amrex_real), intent(inout) ::  by  (bylo(1):byhi(1),bylo(2):byhi(2))
+    real(amrex_real), intent(inout) ::  bb  (bblo(1):bbhi(1),bblo(2):bbhi(2))
     real(amrex_real), intent(in   ) ::  cent(tlo(1):thi(1),tlo(2):thi(2),2)
     real(amrex_real), intent(in   ) :: bcent(clo(1):chi(1),clo(2):chi(2),2)
     integer         , intent(in   ) ::  flag(flo(1):fhi(1),flo(2):fhi(2))
@@ -65,7 +99,11 @@ contains
              y = (j+half+cent(i,j,2))*dx(2) - half
              theta = atan2(x,y) + half*m_pi
              r2 = x**2 + y**2
-             rhs(i,j) = -seven * r2 * cos(three*theta)
+             if (prob_type .eq. 1) then
+                rhs(i,j) = -seven * r2 * cos(three*theta)
+             else
+                rhs(i,j) = -(seven * r2 - fifteen * r2**2) * cos(three*theta)
+             end if
 
              if (is_single_valued_cell(flag(i,j))) then
                 x = (i+half+bcent(i,j,1))*dx(1) - half
@@ -79,6 +117,29 @@ contains
           end if
        end do
     end do
+
+    if (prob_type .eq. 2) then
+       do    j = xlo(2), xhi(2)
+          do i = xlo(1), xhi(1)
+             x = (i     )*dx(1) - half
+             y = (j+half)*dx(2) - half
+             theta = atan2(x,y) + half*m_pi
+             r2 = x**2 + y**2
+             bx(i,j) = one - r2
+          end do
+       end do
+
+       do    j = ylo(2), yhi(2)
+          do i = ylo(1), yhi(1)
+             x = (i+half)*dx(1) - half
+             y = (j     )*dx(2) - half
+             theta = atan2(x,y) + half*m_pi
+             r2 = x**2 + y**2
+             by(i,j) = one - r2
+          end do
+       end do
+    end if
+
   end subroutine mytest_set_phi_eb
 #else
 #endif
